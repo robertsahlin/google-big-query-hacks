@@ -1,11 +1,10 @@
 # For help run serviceaccount.py -h
 # Using days ago flag replaces %1 in localPath path and query with the date (yyyymmdd) corresponding to days ago from current date, useful if running program from task scheduler instead of SSIS
 # Examples of running job...
-# Query and write results to local file directly: serviceaccount9.py -pi 769868728018 -lp "./test/" -sa "769868728018-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, fullvisitorid, visitnumber FROM [32549285.ga_sessions_20140418] LIMIT 10;"
-# Query, export and download results from cloud storage to local file : serviceaccount9.py -pi 769868728018 -lp "./test/" -sa "769868728018-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, fullvisitorid, visitnumber FROM [32549285.ga_sessions_20140418] LIMIT 10;" -db tcne_temp -do queryexportdownloadresultstolocal_%1.csv
-# Query with destinationTable, export and download results from cloud storage to local file : serviceaccount9.py -pi 769868728018 -ds sahlin -dt querydest -lp "./test/" -sa "769868728018-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, fullvisitorid, visitnumber FROM [32549285.ga_sessions_20140418] LIMIT 10;" -db tcne_temp -do queryexportdownloadresultstolocal_%1.csv
-# Large query with destinationTable, export and download results from cloud storage to local file: serviceaccount9.py -pi 769868728018 -lp "./test/" -sa "769868728018-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, brandlabel, count(distinct sessionid) sessions FROM (SELECT [fullvisitorid] as fullvisitorid, concat(string([visitid]), [fullvisitorid]) as sessionid, [hits.page.hostname] as brandlabel, [date] as date FROM [32548779.ga_sessions_%1] GROUP EACH BY sessionid, [hits.hitnumber], [date], [fullvisitorid], [brandlabel])  group by brandlabel, date;" -db tcne_temp -do testtolocal_%1-*.csv -lr True -ds sahlin -dt querydest -wd WRITE_TRUNCATE
-# Run Query with config file: serviceaccount9.py -c ./session_export/serviceaccount.cfg
+# Query only: serviceaccount10.py -pi 970979839129 -sa "970979839129-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"
+# Query, export and download results from cloud storage to local file : serviceaccount10.py -pi 970979839129 -lp "./test/" -sa "970979839129-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;" -db tcne_temp -do queryexportdownloadresultstolocal_%1.csv
+# Large query with destinationTable, export and download results from cloud storage to local file: serviceaccount10.py -pi 970979839129 -lp "./test/" -sa "970979839129-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT * FROM [1_web_data.Travel] where calendardate >= '20150202' and calendardate <= '20150208';" -db tcne_temp -do testtolocal_%1-*.csv -lr True -ds sahlin -dt querydest -wd WRITE_TRUNCATE
+# Run Query with config file: serviceaccount10.py -c ./session_export/serviceaccount.cfg
 
 import httplib2
 import datetime
@@ -15,6 +14,7 @@ import ConfigParser
 import time
 import json
 import io
+import logging
 
 from apiclient.discovery import build
 from apiclient import discovery
@@ -50,7 +50,6 @@ def AsyncQueryBatch(projectId,datasetId,tableId,allowLargeResults,createDisposit
 #Function to specify a big query export job.
 def exportTable(projectId,datasetId, tableId,destinationBucket,destinationObject, destinationFormat):
 	destinationUris = "gs://" + destinationBucket + "/" + destinationObject
-	print destinationUris
 	jobData = {
 		'configuration': {
 			'extract': {
@@ -69,13 +68,10 @@ def exportTable(projectId,datasetId, tableId,destinationBucket,destinationObject
 #Generic method to run Big Query jobs
 def runJob(http, service,jobData,projectId):	
 	jobCollection = service.jobs()
-	print 'jobCollection ok'
-	print 'insertResponse start'
-	insertResponse = jobCollection.insert(projectId=projectId, body=jobData).execute(http)
-	print 'insertResponse ok'
+	insertResponse = jobCollection.insert(projectId=projectId, body=jobData).execute(http=http)
 	
 	while True:
-		status = jobCollection.get(projectId=projectId, jobId=insertResponse['jobReference']['jobId']).execute(http)
+		status = jobCollection.get(projectId=projectId, jobId=insertResponse['jobReference']['jobId']).execute(http=http)
 		currentStatus = status['status']['state']
 
 		if 'DONE' == currentStatus:
@@ -129,8 +125,13 @@ def copyToLocal(service,destinationBucket, destinationObject, localPath):
 			service.objects().delete(bucket=bucket_name, object=object_name).execute()
 	except Exception as err:
 		print 'Undefined error: %s' % err
+		logging.error('Undefined error: %s' % err)
 
 def main():
+	logfile = './logs/serviceaccount_' + datetime.datetime.today().strftime('%Y%m%d') + '.log'
+	logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - row: %(lineno)d - %(message)s',filename=logfile, level=logging.WARNING)
+	
+		
 	parser = argparse.ArgumentParser(version='1.0',add_help=True, description='Run asyncronous Big Query job and/or download result to local file. This script can run queries, exports and download result files.')
 	parser.add_argument('-pi', '--projectId', help='Big Query Project ID. Required')
 	parser.add_argument('-kf', '--keyFile', help='Path to key file (p12). Required')
@@ -159,7 +160,6 @@ def main():
 		serviceAccountEmail = config.get('GBQ', 'serviceAccountEmail')
 		keyFile = config.get('GBQ', 'keyFile')
 		query = config.get('GBQ', 'query')
-		#daysAgo = config.get('GBQ', 'daysAgo')
 		daysAgo = map(int, config.get('GBQ', 'daysAgo').split(' '))
 		allowLargeResults = config.get('GBQ', 'allowLargeResults')
 		createDisposition = config.get('GBQ', 'createDisposition')
@@ -210,36 +210,32 @@ def main():
 		http = credentials.authorize(http)
 		service = build('bigquery', 'v2')
 		if query: #run query
-			print 'AsyncQueryBatch start'
 			jobData = AsyncQueryBatch(projectId,datasetId,tableId,allowLargeResults,createDisposition,writeDisposition,query)
 			insertResponse = runJob(http, service,jobData,projectId)
-			datasetId = insertResponse['configuration']['query']['destinationTable']['datasetId']
-			tableId = insertResponse['configuration']['query']['destinationTable']['tableId']
-			print 'AsyncQueryBatch end'
+			if insertResponse['configuration']['query'].get('destinationTable'): #Check if query has destinationTable
+				datasetId = insertResponse['configuration']['query']['destinationTable']['datasetId']
+				tableId = insertResponse['configuration']['query']['destinationTable']['tableId']
 		if all((destinationBucket,destinationObject)): #export result via cloudstorage
-			print 'ExportTable start'
 			jobData = exportTable(projectId,datasetId, tableId,destinationBucket,destinationObject,destinationFormat)
-			#print jobData
 			insertResponse = runJob(http, service,jobData,projectId)
-			print 'ExportTable end'
-		#if all((localPath,destinationBucket,destinationObject)):
-			if localPath:
-				print 'CopyToLocal start'
+			if localPath: #download to local file(s)
 				credentials = SignedJwtAssertionCredentials(serviceAccountEmail,key,scope='https://www.googleapis.com/auth/devstorage.full_control')
 				http = httplib2.Http()
 				http = credentials.authorize(http)
 				service = discovery.build('storage', 'v1', http=http)
 				copyToLocal(service,destinationBucket, destinationObject, localPath)
-				print 'CopyToLocal end'
 	
 	except HttpError as err:
 		print 'HttpError:', pprint.pprint(err.content)
+		logging.error('HttpError: %s' % err)
 		
 	except AccessTokenRefreshError:
 		print ("Credentials have been revoked or expired, please re-run the application to re-authorize")
+		logging.error("Credentials have been revoked or expired, please re-run the application to re-authorize")
 	
 	except Exception as err:
 		print 'Undefined error: %s' % err
+		logging.error('Undefined error: %s' % err)
 
 
 if __name__ == '__main__':
