@@ -1,10 +1,11 @@
 # For help run serviceaccount.py -h
 # Using days ago flag replaces %1 in localPath path and query with the date (yyyymmdd) corresponding to days ago from current date, useful if running program from task scheduler instead of SSIS
 # Examples of running job...
-# Query only: serviceaccount10.py -pi 970979839129 -sa "970979839129-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"
-# Query, export and download results from cloud storage to local file : serviceaccount10.py -pi 970979839129 -lp "./test/" -sa "970979839129-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;" -db tcne_temp -do queryexportdownloadresultstolocal_%1.csv
-# Large query with destinationTable, export and download results from cloud storage to local file: serviceaccount10.py -pi 970979839129 -lp "./test/" -sa "970979839129-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT * FROM [1_web_data.Travel] where calendardate >= '20150202' and calendardate <= '20150208';" -db tcne_temp -do testtolocal_%1-*.csv -lr True -ds sahlin -dt querydest -wd WRITE_TRUNCATE
-# Run Query with config file: serviceaccount10.py -c ./session_export/serviceaccount.cfg
+# Query without credential parameters: gbq.py -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"
+# Query with credential parameters: gbq.py -pi 970979839129 -sa "970979839129-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"
+# Query, export and download results from cloud storage to local file : gbq.py -lp "./test/" -db tcne_temp -do qedrl_%1.csv -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"
+# Large query with destinationTable, export and download results from cloud storage to local file: gbq.py -lp "./test/"  -db tcne_temp -do testtolocal_%1-*.csv -lr True -ds sahlin -dt querydest -wd WRITE_TRUNCATE -qu "SELECT * FROM [1_web_data.Travel] where calendardate >= '20150202' and calendardate <= '20150208';"
+# Run Query with config file: gbq.py -cf ./session_export/session_export.cfg
 
 import httplib2
 import datetime
@@ -128,7 +129,7 @@ def copyToLocal(service,destinationBucket, destinationObject, localPath):
 		logging.error('Undefined error: %s' % err)
 
 def main():
-	logfile = './logs/serviceaccount_' + datetime.datetime.today().strftime('%Y%m%d') + '.log'
+	logfile = './logs/gbq_' + datetime.datetime.today().strftime('%Y%m%d') + '.log'
 	logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - row: %(lineno)d - %(message)s',filename=logfile, level=logging.WARNING)
 	
 		
@@ -149,31 +150,40 @@ def main():
 	parser.add_argument('-do', '--destinationObject', help='Destination object in Google Cloud Storage and the name of local file (if downloaded). If exporting results larger than 1 GB, set allowLargeResults to TRUE and add a * to filename to export to multiple files, ex. paris-*.csv')
 	parser.add_argument('-df', '--destinationFormat', choices=('CSV', 'JSON'), default='CSV',help='Destination Format: CSV (default) or JSON')
 	args = parser.parse_args()
-	#print args
+	
+	#Default settings
+	defaultConfig = ConfigParser.RawConfigParser()
+	defaultConfig.read('gbq.cfg')
+	projectId = defaultConfig.get('gbq', 'projectId')
+	serviceAccountEmail = defaultConfig.get('gbq', 'serviceAccountEmail')
+	keyFile = defaultConfig.get('gbq', 'keyFile')
 	
 	#Initiate variables, use config file if it is specified, else use submitted command line parameters
 	if args.configFile: 
-		config = ConfigParser.RawConfigParser(allow_no_value=True)
-		config.read(args.configFile)
-		projectId = config.get('GBQ', 'projectId')
-		localPath = config.get('GBQ', 'localPath')
-		serviceAccountEmail = config.get('GBQ', 'serviceAccountEmail')
-		keyFile = config.get('GBQ', 'keyFile')
-		query = config.get('GBQ', 'query')
-		daysAgo = map(int, config.get('GBQ', 'daysAgo').split(' '))
-		allowLargeResults = config.get('GBQ', 'allowLargeResults')
-		createDisposition = config.get('GBQ', 'createDisposition')
-		writeDisposition = config.get('GBQ', 'writeDisposition')
-		datasetId= config.get('GBQ', 'datasetId')
-		tableId= config.get('GBQ', 'tableId')
-		destinationBucket = config.get('GBQ', 'destinationBucket')
-		destinationObject = config.get('GBQ', 'destinationObject')
-		destinationFormat = config.get('GBQ', 'destinationFormat')
+		jobConfig = ConfigParser.RawConfigParser(allow_no_value=True)
+		jobConfig.read(args.configFile)
+		projectId = jobConfig.get('job', 'projectId')
+		localPath = jobConfig.get('job', 'localPath')
+		serviceAccountEmail = jobConfig.get('job', 'serviceAccountEmail')
+		keyFile = jobConfig.get('job', 'keyFile')
+		query = jobConfig.get('job', 'query')
+		daysAgo = map(int, jobConfig.get('job', 'daysAgo').split(' '))
+		allowLargeResults = jobConfig.get('job', 'allowLargeResults')
+		createDisposition = jobConfig.get('job', 'createDisposition')
+		writeDisposition = jobConfig.get('job', 'writeDisposition')
+		datasetId= jobConfig.get('job', 'datasetId')
+		tableId= jobConfig.get('job', 'tableId')
+		destinationBucket = jobConfig.get('job', 'destinationBucket')
+		destinationObject = jobConfig.get('job', 'destinationObject')
+		destinationFormat = jobConfig.get('job', 'destinationFormat')
 	else:
-		projectId = args.projectId
+		if args.projectId:
+			projectId = args.projectId
+		if args.serviceAccountEmail:
+			serviceAccountEmail = args.serviceAccountEmail
+		if args.keyFile:
+			keyFile = args.keyFile
 		localPath = args.localPath
-		serviceAccountEmail = args.serviceAccountEmail
-		keyFile = args.keyFile
 		query = args.query
 		daysAgo = args.daysAgo
 		allowLargeResults = args.allowLargeResults
