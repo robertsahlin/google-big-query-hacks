@@ -54,7 +54,7 @@ The script is run by calling *gbq.py* and accept the following parameters:
 
 #Configure default settings for the script.
 The default settings can be overriden by runtime parameters or job specific config file. Default settings are set in gbq.cfg. Parameters that can be set
-1.  projectId
-2.  serviceAccountEmail
-3.  keyFile
+- projectId
+- serviceAccountEmail
+- keyFile
 
