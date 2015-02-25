@@ -3,7 +3,7 @@ Python scripts to export web analytics data from Google Big Query. Scripts can b
 
 #Service account authentication
 Set up a service account in your big query project. See https://cloud.google.com/bigquery/authorization#service-accounts
-Download p12 key file and store it on the server (in the same folder as the script).
+Download p12 key file and store it on the server (in the same folder as the script). By using a service account and key file we avoid credential expiries and user login and consent.
 
 #Install python and required python packages on the server that runs the script
 1.	Install Python 2.7.8 (add python to PATH) https://www.python.org/download/
@@ -36,7 +36,10 @@ The script is run by calling *gbq.py* and accept the following parameters:
 - **-do** or **--destinationObject** Destination object in Google Cloud Storage and the name of local file (if downloaded). If exporting results larger than 1 GB, set allowLargeResults to TRUE and add a wildcard (\*) to destinationObject to export to multiple files. *Ex. paris-*\**.csv*
 - **-df** or **--destinationFormat** Destination Format. Options: CSV (default), JSON
 
-#Examples:
+#Configuration file with job specific parameters
+A job can be run with the -cf or --configFile parameter to set job specific settings. See example_job.cfg for example config file.
+
+#Examples of running the script:
 - Query with default settings: 
   - *gbq.py -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"*
 
@@ -58,3 +61,5 @@ The default settings can be overriden by runtime parameters or job specific conf
 - serviceAccountEmail
 - keyFile
 
+#Error logging
+Errors are logged to a daily log file in the logs folder. Example "gbq_20150223.log".
