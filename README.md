@@ -1,5 +1,5 @@
 # Big-Query
-Python scripts to export web analytics data from Google Big Query. Scripts can be executed from SSIS or as a scheduled task.
+Python scripts to export web analytics data from Google Big Query. Scripts can be executed from SSIS or as a scheduled task in Windows Task Scheduler.
 
 #Service account authentication
 Set up a service account in your big query project. See https://cloud.google.com/bigquery/authorization#service-accounts
