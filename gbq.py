@@ -127,6 +127,7 @@ def copyToLocal(service,destinationBucket, destinationObject, localPath):
 	except Exception as err:
 		print 'Undefined error: %s' % err
 		logging.error('Undefined error: %s' % err)
+		sys.exit(1)
 
 def main():
 	logfile = './logs/gbq_' + datetime.datetime.today().strftime('%Y%m%d') + '.log'
@@ -162,10 +163,13 @@ def main():
 	if args.configFile: 
 		jobConfig = ConfigParser.RawConfigParser(allow_no_value=True)
 		jobConfig.read(args.configFile)
-		projectId = jobConfig.get('job', 'projectId')
+		if jobConfig.get('job', 'projectId'):
+			projectId = jobConfig.get('job', 'projectId')
+		if jobConfig.get('job', 'serviceAccountEmail'):
+			serviceAccountEmail = jobConfig.get('job', 'serviceAccountEmail')
+		if jobConfig.get('job', 'keyFile'):
+			keyFile = jobConfig.get('job', 'keyFile')
 		localPath = jobConfig.get('job', 'localPath')
-		serviceAccountEmail = jobConfig.get('job', 'serviceAccountEmail')
-		keyFile = jobConfig.get('job', 'keyFile')
 		query = jobConfig.get('job', 'query')
 		daysAgo = map(int, jobConfig.get('job', 'daysAgo').split(' '))
 		allowLargeResults = jobConfig.get('job', 'allowLargeResults')
@@ -194,7 +198,7 @@ def main():
 		destinationBucket = args.destinationBucket
 		destinationObject = args.destinationObject
 		destinationFormat = args.destinationFormat
-	
+
 	#replace days ago placeholders (%1, %2, etc.) with respective date.
 	if daysAgo:
 		c = 1
@@ -238,14 +242,17 @@ def main():
 	except HttpError as err:
 		print 'HttpError:', pprint.pprint(err.content)
 		logging.error('HttpError: %s' % err)
+		sys.exit(1)
 		
 	except AccessTokenRefreshError:
 		print ("Credentials have been revoked or expired, please re-run the application to re-authorize")
 		logging.error("Credentials have been revoked or expired, please re-run the application to re-authorize")
+		sys.exit(1)
 	
 	except Exception as err:
 		print 'Undefined error: %s' % err
 		logging.error('Undefined error: %s' % err)
+		sys.exit(1)
 
 
 if __name__ == '__main__':
