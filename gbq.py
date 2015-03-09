@@ -16,6 +16,7 @@ import time
 import json
 import io
 import logging
+import sys
 
 from apiclient.discovery import build
 from apiclient import discovery
@@ -74,10 +75,14 @@ def runJob(http, service,jobData,projectId):
 	while True:
 		status = jobCollection.get(projectId=projectId, jobId=insertResponse['jobReference']['jobId']).execute(http=http)
 		currentStatus = status['status']['state']
-
+		
 		if 'DONE' == currentStatus:
 			print 'Current status: ' + currentStatus
 			print time.ctime()
+			if status['status'].get('errors'):
+				print 'Error: %s' % str (status['status']['errors'][0]['message'])
+				logging.error('Query error: %s' % str (status['status']['errors'][0]['message']))
+				sys.exit(1)
 			return insertResponse
 
 		else:
