@@ -138,7 +138,6 @@ def main():
 	logfile = './logs/gbq_' + datetime.datetime.today().strftime('%Y%m%d') + '.log'
 	logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - row: %(lineno)d - %(message)s',filename=logfile, level=logging.WARNING)
 	
-		
 	parser = argparse.ArgumentParser(version='1.0',add_help=True, description='Run asyncronous Big Query job and/or download result to local file. This script can run queries, exports and download result files.')
 	parser.add_argument('-pi', '--projectId', help='Big Query Project ID. Required')
 	parser.add_argument('-kf', '--keyFile', help='Path to key file (p12). Required')

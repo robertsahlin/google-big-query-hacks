@@ -1,5 +1,5 @@
 # Big-Query
-Python scripts to export web analytics data from Google Big Query. Scripts can be executed from SSIS or as a scheduled task in Windows Task Scheduler.
+Python scripts to export web analytics data from Google Big Query. Scripts can be executed from SSIS or as a scheduled task.
 
 #Service account authentication
 Set up a service account in your big query project. See https://cloud.google.com/bigquery/authorization#service-accounts
@@ -44,13 +44,13 @@ A job can be run with the -cf or --configFile parameter to set job specific sett
   - *gbq.py -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"*
 
 - Query with job specific credential parameters: 
-  - *gbq.py -pi 123456789 -sa "123456789-4dob10dg1edrgguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"*
+  - *gbq.py -pi 123456789 -sa "123456789-4dob09dg1edgrguke5erlte0vub6ljtr@developer.gserviceaccount.com" -kf tcne.p12 -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"*
 
 - Query, export and download results from cloud storage to local file : 
-  - *gbq.py -lp "./test/" -db mybucket -do mydataobject_%1.csv -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"*
+  - *gbq.py -lp "./test/" -db tcne_temp -do qedrl_%1.csv -qu "SELECT date, fullvisitorid, visitnumber FROM [76949285.ga_sessions_20140418] LIMIT 10;"*
 
 - Large query with destinationTable, export and download results from cloud storage to local file(s): 
-  - *gbq.py -lp "./test/"  -db mybucket -do mydataobject_%1-*\**.csv -lr True -ds mydataset -dt mydatatable -wd WRITE_TRUNCATE -qu "SELECT * FROM [1_web_data.Travel] where calendardate >= '20150202' and calendardate <= '20150208';"*
+  - *gbq.py -lp "./test/"  -db tcne_temp -do testtolocal_%1-*\**.csv -lr True -ds mydataset -dt mydatatable -wd WRITE_TRUNCATE -qu "SELECT * FROM [1_web_data.Travel] where calendardate >= '20150202' and calendardate <= '20150208';"*
 
 - Run Query with config file: 
   - *gbq.py -cf ./session_export/session_export.cfg*
@@ -63,3 +63,13 @@ The default settings can be overriden by runtime parameters or job specific conf
 
 #Error logging
 Errors are logged to a daily log file in the logs folder. Example "gbq_20150223.log".
+
+#Scheduled tasks
+Windows Task scheduler ignores script errors and doesn’t provide a way to run retries, hence we use a helper batch-script (scriptscheduler.bat) to take care of that logic. The batch-script is located in the same folder as the python scripts.  
+The script is called with at least 3 arguments:
+- Number of retries
+- Time between retries
+- The command to be executed
+
+Example: *scriptscheduler.bat 12 1800 gbq.py -cf ./travel_table/travel_table_range.cfg*
+
