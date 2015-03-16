@@ -26,7 +26,7 @@ The script is run by calling *gbq.py* and accept the following parameters:
 - **-lp** or **--localPath** Set path to local directory if results should be downloaded locally
 - **-qu** or **--query** Query (SQL). *Ex. SELECT date, fullvisitorid FROM [76949285.ga_sessions_20140418] LIMIT 10*
 - **-cf** or **--configFile** Path to a job specific config file if properties are set by file. *Ex. /sessionexport/sessionexportjob.cfg*
-- **-da** or **--daysAgo** Specify number of days ago counted from runtime. Replaces %%1 (%%2,%%3,...) in query, local file, destination object and tableId. *Ex. "-da 1 7" replaces %1 and %2 with 1 and respectively*
+- **-da** or **--daysAgo** Specify number of days ago counted from runtime. Replaces %%1 (%%2,%%3,...) in query, local file, destination object and tableId. *Ex. "-da 7 1" replaces %1 and %2 with date 7 days ago and 1 day ago respectively*
 - **-lr** or **--allowLargeResults** Allow large results. Options: False (default) or True
 - **-cd** or **--createDisposition** Create destination table. Options: CREATE_IF_NEEDED (default), CREATE_NEVER
 - **-wd** or **--writeDisposition** Write to destination table. Options: WRITE_EMPTY (default), WRITE_TRUNCATE, WRITE_APPEND
@@ -65,11 +65,11 @@ The default settings can be overriden by runtime parameters or job specific conf
 Errors are logged to a daily log file in the logs folder. Example "gbq_20150223.log".
 
 #Scheduled tasks
-Windows Task scheduler ignores script errors and doesn’t provide a way to run retries, hence we use a helper batch-script (scriptscheduler.bat) to take care of that logic. The batch-script is located in the same folder as the python scripts.  
-The script is called with at least 3 arguments:
-- Number of retries
-- Time between retries
-- The command to be executed
+Windows Task scheduler ignores script errors and doesn’t provide a way to run retries, hence we use a helper batch-script (scriptscheduler.bat) to take care of that logic. The batch-script is located in the same folder as the python scripts.  Unfortunately task scheduler seems to limit the number of characters in arguments to 350. Hence, long queries must be put in job specific config files. 
+The script is called with at least 3 arguments: scriptscheduler.bat <retries> <sleep> <command>
+- <retries> = Number of retries
+- <sleep> = Time between retries (in seconds)
+- <command> = The command to be executed
 
 Example: *scriptscheduler.bat 12 1800 gbq.py -cf ./travel_table/travel_table_range.cfg*
 

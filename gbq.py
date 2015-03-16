@@ -242,6 +242,7 @@ def main():
 				http = credentials.authorize(http)
 				service = discovery.build('storage', 'v1', http=http)
 				copyToLocal(service,destinationBucket, destinationObject, localPath)
+		logging.warning('Job complete! Query: %s' % query)
 	
 	except HttpError as err:
 		print 'HttpError:', pprint.pprint(err.content)
