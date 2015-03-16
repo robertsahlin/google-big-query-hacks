@@ -26,7 +26,7 @@ The script is run by calling *gbq.py* and accept the following parameters:
 - **-lp** or **--localPath** Set path to local directory if results should be downloaded locally
 - **-qu** or **--query** Query (SQL). *Ex. SELECT date, fullvisitorid FROM [76949285.ga_sessions_20140418] LIMIT 10*
 - **-cf** or **--configFile** Path to a job specific config file if properties are set by file. *Ex. /sessionexport/sessionexportjob.cfg*
-- **-da** or **--daysAgo** Specify number of days ago counted from runtime. Replaces %%1 (%%2,%%3,...) in query, local file, destination object and tableId. *Ex. "-da 1 7" replaces %1 and %2 with 1 and respectively*
+- **-da** or **--daysAgo** Specify number of days ago counted from runtime. Replaces %1 (%2,%3,...) in query, local file, destination object and tableId. *Ex. "-da 1 7" replaces %1 and %2 with 1 and respectively*
 - **-lr** or **--allowLargeResults** Allow large results. Options: False (default) or True
 - **-cd** or **--createDisposition** Create destination table. Options: CREATE_IF_NEEDED (default), CREATE_NEVER
 - **-wd** or **--writeDisposition** Write to destination table. Options: WRITE_EMPTY (default), WRITE_TRUNCATE, WRITE_APPEND
